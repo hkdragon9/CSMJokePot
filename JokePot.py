@@ -34,7 +34,7 @@ def next_joke():
         return False
     else:
         print("I don't understand, please enter 'next' or 'quit'")
-        next_joke()
+        return next_joke()
 
 def deliver_joke_from_file(filename):
     '''
@@ -89,8 +89,8 @@ def deliver_joke_from_reddit():
     for row in data["data"]["children"]:
         title_first_world = row["data"]["title"].split(' ', 1)[0]
 
-        if not row["data"]["over_18"]:
-            continue
+        #if not row["data"]["over_18"]:
+        #    continue
         if title_first_world != "Why" and title_first_world != "What" and title_first_world != "How":
             continue
 
@@ -102,6 +102,67 @@ def deliver_joke_from_reddit():
             job_deliver(row["data"]["title"], row["data"]["selftext"])
         else:
             break
+    time.sleep(1)
+    print("\nno more jokes today, go back to study CS")
+
+
+def deliver_joke_from_reddit_link():
+    '''
+        If no local file's name is provided,
+        deliver jokes from reddit.
+        Delivers first joke upon called.
+        Only delivers the next joke if the user replies 'next'
+        Quit if user replies 'quit' or no more jokes available.
+
+        Delivers jokes with 2 more constraints:
+            1. the joke must be 'over_18'
+            2. the joke must start with 'Why', 'What' or 'How'
+
+        Note: The function does not take care of pagination!
+        Note: there might be a cleaner way to combine this method with the previous one.
+            But I prefer this because it is more bug-free and test-friendly.
+    '''
+    #get the json of the reddit posts.
+    #Regarding the details of the json, please check the link below:
+    # https://www.reddit.com/r/dadjokes.json
+
+    page_number = 0
+    after_string = ""
+    quit_jokepot = False
+    while(True):
+        if page_number == 0:
+            reddit_posts = requests.get(
+                "https://www.reddit.com/r/dadjokes.json", headers={'User-agent': 'your bot 0.1'})
+        else:
+            reddit_posts = requests.get(
+                f"https://www.reddit.com/r/dadjokes.json?count={25 * page_number}&after={after_string}", headers={'User-agent': 'your bot 0.1'})
+
+        data = reddit_posts.json()
+        after_string = data["data"]["after"]
+        first_joke = True
+
+        for row in data["data"]["children"]:
+            title_first_world = row["data"]["title"].split(' ', 1)[0]
+
+            #if not row["data"]["over_18"]:
+            #    continue
+
+            if title_first_world != "What" and title_first_world != "What" and title_first_world != "What":
+                continue
+
+            if first_joke:
+                job_deliver(row["data"]["title"], row["data"]["selftext"])
+                first_joke = False
+                continue
+            elif next_joke():
+                job_deliver(row["data"]["title"], row["data"]["selftext"])
+            else:
+                quit_jokepot = True
+                break
+        page_number += 1
+        if quit_jokepot:
+            break
+
     time.sleep(1)
     print("\nno more jokes today, go back to study CS")
 
@@ -120,7 +181,7 @@ def main():
     elif len(sys.argv) == 2:
         deliver_joke_from_file(sys.argv[1])
     else:
-        deliver_joke_from_reddit()
+        deliver_joke_from_reddit_link()
 
 
 if __name__ == '__main__':
